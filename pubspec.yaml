@@ -43,6 +43,10 @@ dependencies:
   image_cropper: ^2.0.3
   settings_ui: ^2.0.2
   cached_network_image: ^3.2.1
+  bottom_bar: ^2.0.1
+  sn_progress_dialog: ^1.0.8
+  intl: ^0.17.0
+  
 
 dev_dependencies:
   flutter_test:

@@ -166,6 +166,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             return "The Email Must Contain @";
                           } else if (!val.contains(".")) {
                             return "The Email Must Contain .";
+                          } else if (!val.contains("@") && !val.contains(".")) {
+                            return "The Email Must Contain @ and .";
                           } else {
                             return null;
                           }
@@ -572,7 +574,8 @@ class _RegisterPageState extends State<RegisterPage> {
     String password = _passEditingController.text;
     String base64Image = base64Encode(_image!.readAsBytesSync());
 
-    http.post(Uri.parse("${Config.server}/mytutor/php/register_user.php"),
+    http.post(
+        Uri.parse("${Config.server}/mytutor/mobile/php/register_user.php"),
         body: {
           "name": name,
           "email": email,
