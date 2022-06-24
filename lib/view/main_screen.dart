@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
+import 'package:user_profile_avatar/user_profile_avatar.dart';
+import 'package:widget_circular_animator/widget_circular_animator.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:sn_progress_dialog/sn_progress_dialog.dart';
@@ -10,6 +12,7 @@ import 'package:my_tutor/view/login_page.dart';
 import 'package:bottom_bar/bottom_bar.dart';
 import '../model/subjects.dart';
 import '../model/tutors.dart';
+import '../model/tutorsubject.dart';
 import '../model/user.dart';
 import '../model/config.dart';
 
@@ -24,7 +27,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   List<Subjects> subjectList = <Subjects>[];
   List<Tutors> tutorsList = <Tutors>[];
+  List<TutorSub> tutorsubList = <TutorSub>[];
 
+  TextEditingController searchSubController = TextEditingController();
   String titlecenter = "Loading...";
   String titlecenter2 = "Loading...";
   final _pageController = PageController();
@@ -45,6 +50,7 @@ class _MainScreenState extends State<MainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _loadSubjects(1, search, "All");
       _loadTutors(1, search2, "All");
+      _loadsubTutors();
     });
   }
 
@@ -82,6 +88,14 @@ class _MainScreenState extends State<MainScreen> {
                         ],
                       )),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {
+                    _loadSearchSubject();
+                  },
+                ),
+              ],
             ),
             body: subjectList.isEmpty
                 ? Padding(
@@ -100,6 +114,10 @@ class _MainScreenState extends State<MainScreen> {
                               return Padding(
                                 padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
                                 child: ElevatedButton(
+                                  style: ButtonStyle(
+                                    backgroundColor:
+                                        MaterialStateProperty.all(Colors.pink),
+                                  ),
                                   child: Text(char),
                                   onPressed: () {
                                     _loadSubjects(1, "", char);
@@ -446,7 +464,7 @@ class _MainScreenState extends State<MainScreen> {
                           return SizedBox(
                             width: 40,
                             child: TextButton(
-                              style: ButtonStyle(
+                                style: ButtonStyle(
                                   overlayColor: MaterialStateColor.resolveWith(
                                       (states) => Colors.blue),
                                 ),
@@ -467,16 +485,36 @@ class _MainScreenState extends State<MainScreen> {
           Scaffold(
             backgroundColor: Colors.orange,
             body: Center(
-              child: ElevatedButton(
-                child: const Text('LogOut'),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
-                  );
-                },
+                child: Column(children: [
+              Flexible(
+                flex: 4,
+                child: WidgetCircularAnimator(
+                  child: Container(
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle, color: Colors.grey[200]),
+                    child: UserProfileAvatar(
+                      avatarUrl:
+                          "${Config.server}/mytutor/assets/user_image/${widget.user.id.toString()}.jpg",
+                      onAvatarTap: () {
+                        print('Avatar Tapped..');
+                      },
+                      notificationBubbleTextStyle: TextStyle(
+                        fontSize: 30,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      avatarSplashColor: Colors.purple,
+                      radius: 100,
+                      isActivityIndicatorSmall: false,
+                      avatarBorderData: AvatarBorderData(
+                        borderColor: Colors.white,
+                        borderWidth: 5.0,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ])),
           ),
         ],
         onPageChanged: (index) {
@@ -522,6 +560,57 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _loadSearchSubject() {
+    searchSubController.text = "";
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, StateSetter setState) {
+              return AlertDialog(
+                title: const Text(
+                  "Subject Search",
+                ),
+                content: SizedBox(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: searchSubController,
+                        decoration: InputDecoration(
+                          fillColor: Colors.white,
+                          labelText: 'Search',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(5.0),
+                              borderSide: const BorderSide(color: Colors.pink)),
+                          filled: true,
+                          contentPadding: const EdgeInsets.only(
+                              bottom: 10.0, left: 10.0, right: 10.0),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                    ],
+                  ),
+                ),
+                actions: [
+                  ElevatedButton(
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(Colors.pink),
+                    ),
+                    onPressed: () {
+                      search = searchSubController.text;
+                      Navigator.of(context).pop();
+                      _loadSubjects(1, search, "All");
+                    },
+                    child: const Text("Search"),
+                  )
+                ],
+              );
+            },
+          );
+        });
+  }
+
   void _loadSubjects(int pageno, String _search, String _type) {
     curpage = pageno;
     numofpage ?? 1;
@@ -551,7 +640,7 @@ class _MainScreenState extends State<MainScreen> {
         setState(() {});
       } else {
         //do something
-        titlecenter = "No SubjectsAvailable";
+        titlecenter = "No Subjects Available";
         subjectList.clear();
         setState(() {});
       }
@@ -593,6 +682,25 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
     pd.close();
+  }
+
+  void _loadsubTutors() {
+    http
+        .post(
+      Uri.parse("${Config.server}/mytutor/mobile/php/loadsub_tutor.php"),
+    )
+        .then((response) {
+      print(response.body);
+      var jsondata = jsonDecode(response.body);
+      var extractdata = jsondata['data'];
+      if (extractdata['tutorsub'] != null) {
+        tutorsubList = <TutorSub>[];
+        extractdata['tutorsub'].forEach((v) {
+          tutorsubList.add(TutorSub.fromJson(v));
+        });
+      }
+      setState(() {});
+    });
   }
 
   _loadSubjectDetails(int index) {
@@ -673,6 +781,13 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   _loadTutorsDetail(int index) {
+    List<String> subTutor = [];
+    List.generate(tutorsubList.length, (i) {
+      if (tutorsubList[i].tutorId == tutorsList[index].tutorId) {
+        subTutor.add("${tutorsubList[i].subjectName}");
+      }
+    });
+
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -715,6 +830,10 @@ class _MainScreenState extends State<MainScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                       "\nPhone Number: "),
                   Text("${tutorsList[index].tutorPhone}"),
+                  Text(
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      "\nSubject Tutoring: "),
+                  Text(subTutor.toString()),
                   Text(
                       style: TextStyle(fontWeight: FontWeight.bold),
                       "\nDate Registeration: "),

@@ -46,6 +46,8 @@ dependencies:
   bottom_bar: ^2.0.1
   sn_progress_dialog: ^1.0.8
   intl: ^0.17.0
+  widget_circular_animator: ^1.0.0
+  user_profile_avatar: ^0.1.1
   
 
 dev_dependencies:
