@@ -37,10 +37,14 @@ if ($result->num_rows > 0) {
     sendJsonResponse($response);
 }
 
+
+
 function sendJsonResponse($sentArray)
 {
     header('Content-Type: application/json');
     echo json_encode($sentArray);
 }
+
+
 
 ?>
