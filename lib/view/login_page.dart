@@ -288,7 +288,6 @@ class _LoginPageState extends State<LoginPage> {
     }
     http.post(Uri.parse("${Config.server}/mytutor/mobile/php/login_user.php"),
         body: {"email": _email, "password": _pass}).then((response) {
-      print(response.body);
       var data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['status'] == 'success') {
         User user = User.fromJson(data['data']);

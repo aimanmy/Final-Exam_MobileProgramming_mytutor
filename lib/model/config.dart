@@ -1,3 +1,4 @@
 class Config {
-  static const String server = "http://10.31.21.192";
+  static String server = "https://flutteraimanyuri.000webhostapp.com";
+  static const String server = "http://10.31.43.95"; //UUM
 }

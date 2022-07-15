@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:my_tutor/view/subscriptionscreen_payment.dart';
 import 'package:user_profile_avatar/user_profile_avatar.dart';
 import 'package:widget_circular_animator/widget_circular_animator.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:my_tutor/model/config.dart';
 import 'package:my_tutor/view/login_page.dart';
 import 'package:bottom_bar/bottom_bar.dart';
+import '../model/subscription.dart';
 import '../model/subjects.dart';
 import '../model/tutors.dart';
 import '../model/tutorsubject.dart';
@@ -25,6 +28,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  List<Subscription> subcriptionList = <Subscription>[];
   List<Subjects> subjectList = <Subjects>[];
   List<Tutors> tutorsList = <Tutors>[];
   List<TutorSub> tutorsubList = <TutorSub>[];
@@ -32,9 +36,11 @@ class _MainScreenState extends State<MainScreen> {
   TextEditingController searchSubController = TextEditingController();
   String titlecenter = "Loading...";
   String titlecenter2 = "Loading...";
+  String titlecenter3 = "Loading...";
   final _pageController = PageController();
   final df = DateFormat('dd/MM/yyyy hh:mm a');
   late double screenHeight, screenWidth, resWidth;
+  double totalpayable = 0.0;
   int _currentPage = 0;
   String search = "";
   String search2 = "";
@@ -51,6 +57,7 @@ class _MainScreenState extends State<MainScreen> {
       _loadSubjects(1, search, "All");
       _loadTutors(1, search2, "All");
       _loadsubTutors();
+      _loadSubscirption();
     });
   }
 
@@ -176,7 +183,7 @@ class _MainScreenState extends State<MainScreen> {
                                     child: Column(
                                       children: [
                                         Flexible(
-                                          flex: 6,
+                                          flex: 5,
                                           child: CachedNetworkImage(
                                             imageUrl: Config.server +
                                                 "/mytutor/assets/courses/" +
@@ -204,7 +211,7 @@ class _MainScreenState extends State<MainScreen> {
                                               fontWeight: FontWeight.bold),
                                         ),
                                         Flexible(
-                                            flex: 4,
+                                            flex: 5,
                                             child: Column(
                                               children: [
                                                 Row(
@@ -242,6 +249,65 @@ class _MainScreenState extends State<MainScreen> {
                                                           Text(
                                                               "\n${double.parse(subjectList[index].subjectRating.toString()).toStringAsFixed(2)}"),
                                                         ]),
+                                                        Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .end,
+                                                            children: [
+                                                              IconButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    showDialog(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (BuildContext
+                                                                                context) {
+                                                                          return AlertDialog(
+                                                                            shape:
+                                                                                const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(20.0))),
+                                                                            title:
+                                                                                Text(
+                                                                              textAlign: TextAlign.center,
+                                                                              "${subjectList[index].subjectName} Subsciption",
+                                                                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                                                                            ),
+                                                                            content:
+                                                                                const Text("Are Your Sure You Want To Subscribe?", style: TextStyle()),
+                                                                            actions: <Widget>[
+                                                                              TextButton(
+                                                                                style: TextButton.styleFrom(
+                                                                                  primary: Colors.pink,
+                                                                                ),
+                                                                                child: const Text(
+                                                                                  "Yes",
+                                                                                  style: TextStyle(),
+                                                                                ),
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                  __addSubscription(index);
+                                                                                },
+                                                                              ),
+                                                                              TextButton(
+                                                                                style: TextButton.styleFrom(
+                                                                                  primary: Colors.pink,
+                                                                                ),
+                                                                                child: const Text(
+                                                                                  "No",
+                                                                                  style: TextStyle(),
+                                                                                ),
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        });
+                                                                  },
+                                                                  icon: const Icon(
+                                                                      Icons
+                                                                          .subscriptions_rounded))
+                                                            ]),
                                                       ]),
                                                     ),
                                                   ],
@@ -480,7 +546,179 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ]),
           ),
-          Container(color: Colors.red),
+          Scaffold(
+              appBar: AppBar(
+                centerTitle: true,
+                backgroundColor: Colors.red,
+                title: Text(
+                  'SUBSCRIBE',
+                  style: TextStyle(
+                      fontSize: 40,
+                      foreground: Paint()
+                        ..shader = ui.Gradient.linear(
+                          const Offset(50, 50),
+                          const Offset(150, 150),
+                          <Color>[
+                            Colors.red,
+                            Colors.white,
+                          ],
+                        )),
+                ),
+              ),
+              body: subcriptionList.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text(titlecenter3,
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+                      child: Column(
+                        children: [
+                          Text(titlecenter3,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          Expanded(
+                              child: GridView.count(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: (1 / 2),
+                                  children: List.generate(
+                                      subcriptionList.length, (index) {
+                                    return InkWell(
+                                        child: Card(
+                                            elevation: 8,
+                                            shadowColor: Colors.red,
+                                            shape: OutlineInputBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                borderSide: const BorderSide(
+                                                    color: Colors.black,
+                                                    width: 1)),
+                                            child: Column(
+                                              children: [
+                                                Flexible(
+                                                  flex: 6,
+                                                  child: CachedNetworkImage(
+                                                    imageUrl: Config.server +
+                                                        "/mytutor/assets/courses/" +
+                                                        subcriptionList[index]
+                                                            .subjectId
+                                                            .toString() +
+                                                        '.jpg',
+                                                    fit: BoxFit.scaleDown,
+                                                    height: 170,
+                                                    width: resWidth,
+                                                    placeholder: (context,
+                                                            url) =>
+                                                        const LinearProgressIndicator(),
+                                                    errorWidget: (context, url,
+                                                            error) =>
+                                                        const Icon(Icons.error),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  textAlign: TextAlign.center,
+                                                  subcriptionList[index]
+                                                      .subjectName
+                                                      .toString(),
+                                                  style: const TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                                Flexible(
+                                                  flex: 4,
+                                                  child: Column(children: [
+                                                    Expanded(
+                                                      child: Column(children: [
+                                                        Text("\nRM " +
+                                                            double.parse(subcriptionList[
+                                                                        index]
+                                                                    .subjectPrice
+                                                                    .toString())
+                                                                .toStringAsFixed(
+                                                                    2) +
+                                                            "/Subscription"),
+                                                        Text(
+                                                          "RM " +
+                                                              double.parse(subcriptionList[
+                                                                          index]
+                                                                      .priceTotal
+                                                                      .toString())
+                                                                  .toStringAsFixed(
+                                                                      2),
+                                                          style: const TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                      ]),
+                                                    ),
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        TextButton(
+                                                            onPressed: () {
+                                                              _updateSubscription(
+                                                                  index, "-");
+                                                            },
+                                                            child: const Text(
+                                                                "-")),
+                                                        Text(subcriptionList[
+                                                                index]
+                                                            .subscriptionQty
+                                                            .toString()),
+                                                        TextButton(
+                                                            onPressed: () {
+                                                              _updateSubscription(
+                                                                  index, "+");
+                                                            },
+                                                            child: const Text(
+                                                                "+")),
+                                                        IconButton(
+                                                            onPressed: () {
+                                                              _deleteSubscription(
+                                                                  index);
+                                                            },
+                                                            icon: const Icon(
+                                                                Icons.delete))
+                                                      ],
+                                                    )
+                                                  ]),
+                                                )
+                                              ],
+                                            )));
+                                  }))),
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text(
+                                    "Total Payable: RM " +
+                                        totalpayable.toStringAsFixed(2),
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  ElevatedButton(
+                                      onPressed: _SubcriptionPayDialog,
+                                      child: const Text("Pay Subscription"))
+                                ],
+                              ),
+                            ),
+                          )
+                        ],
+                      ))),
           Container(color: Colors.greenAccent.shade700),
           Scaffold(
             backgroundColor: Colors.orange,
@@ -496,7 +734,10 @@ class _MainScreenState extends State<MainScreen> {
                       avatarUrl:
                           "${Config.server}/mytutor/assets/user_image/${widget.user.id.toString()}.jpg",
                       onAvatarTap: () {
-                        print('Avatar Tapped..');
+                        Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (content) => const LoginPage()));
                       },
                       notificationBubbleTextStyle: TextStyle(
                         fontSize: 30,
@@ -690,7 +931,6 @@ class _MainScreenState extends State<MainScreen> {
       Uri.parse("${Config.server}/mytutor/mobile/php/loadsub_tutor.php"),
     )
         .then((response) {
-      print(response.body);
       var jsondata = jsonDecode(response.body);
       var extractdata = jsondata['data'];
       if (extractdata['tutorsub'] != null) {
@@ -773,6 +1013,58 @@ class _MainScreenState extends State<MainScreen> {
                     errorWidget: (context, url, error) =>
                         const Icon(Icons.error),
                   ),
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    IconButton(
+                        onPressed: () {
+                          showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(20.0))),
+                                  title: Text(
+                                    textAlign: TextAlign.center,
+                                    "${subjectList[index].subjectName} Subsciption",
+                                    style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  content: const Text(
+                                      "Are Your Sure You Want To Subscribe?",
+                                      style: TextStyle()),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        primary: Colors.pink,
+                                      ),
+                                      child: const Text(
+                                        "Yes",
+                                        style: TextStyle(),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        __addSubscription(index);
+                                      },
+                                    ),
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        primary: Colors.pink,
+                                      ),
+                                      child: const Text(
+                                        "No",
+                                        style: TextStyle(),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              });
+                        },
+                        icon: const Icon(Icons.subscriptions_rounded))
+                  ]),
                 ]),
               ],
             )),
@@ -844,5 +1136,200 @@ class _MainScreenState extends State<MainScreen> {
             )),
           );
         });
+  }
+
+  void __addSubscription(int index) {
+    http.post(
+        Uri.parse(
+            "${Config.server}/mytutor/mobile/php/insert_subscription.php"),
+        body: {
+          "email": widget.user.email.toString(),
+          "subid": subjectList[index].subjectId.toString(),
+        }).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        return http.Response(
+            'Error', 408); // Request Timeout response status code
+      },
+    ).then((response) {
+      var jsondata = jsonDecode(response.body);
+      if (response.statusCode == 200 && jsondata['status'] == 'success') {
+        print(jsondata['data']['subscriptiontotal'].toString());
+        setState(() {
+          widget.user.subscription =
+              jsondata['data']['subscriptiontotal'].toString();
+        });
+
+        Fluttertoast.showToast(
+            msg: "Success",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1,
+            fontSize: 16.0);
+        _loadSubscirption();
+      }
+    });
+  }
+
+  void _loadSubscirption() {
+    http.post(
+        Uri.parse("${Config.server}/mytutor/mobile/php/load_subscription.php"),
+        body: {
+          'user_email': widget.user.email,
+        }).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        return http.Response(
+            'Error', 408); // Request Timeout response status code
+      },
+    ).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        titlecenter3 = "Timeout Please retry again later";
+        return http.Response(
+            'Error', 408); // Request Timeout response status code
+      },
+    ).then((response) {
+      var jsondata = jsonDecode(response.body);
+      print(response.body);
+      if (response.statusCode == 200 && jsondata['status'] == 'success') {
+        var extractdata = jsondata['data'];
+        if (extractdata['subscription'] != null) {
+          subcriptionList = <Subscription>[];
+          extractdata['subscription'].forEach((v) {
+            subcriptionList.add(Subscription.fromJson(v));
+          });
+          int qty = 0;
+          totalpayable = 0.00;
+          for (var element in subcriptionList) {
+            qty = qty + int.parse(element.subscriptionQty.toString());
+            totalpayable =
+                totalpayable + double.parse(element.priceTotal.toString());
+          }
+          titlecenter3 = "$qty Subscription Were Made";
+          setState(() {});
+        }
+      } else {
+        titlecenter3 = "No Subscription Were Made 😵 ";
+        subcriptionList.clear();
+        setState(() {});
+      }
+    });
+  }
+
+  void _deleteSubscription(int index) {
+    http.post(
+        Uri.parse(
+            "${Config.server}/mytutor/mobile/php/delete_subscription.php"),
+        body: {
+          'user_email': widget.user.email,
+          'subscription_id': subcriptionList[index].subscriptionId
+        }).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        return http.Response(
+            'Error', 408); // Request Timeout response status code
+      },
+    ).then((response) {
+      var jsondata = jsonDecode(response.body);
+      if (response.statusCode == 200 && jsondata['status'] == 'success') {
+        Fluttertoast.showToast(
+            msg: "Success",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1,
+            fontSize: 16.0);
+        _loadSubscirption();
+      } else {
+        Fluttertoast.showToast(
+            msg: "Failed",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1,
+            fontSize: 16.0);
+      }
+    });
+  }
+
+  void _updateSubscription(int index, String s) {
+    if (s == "-") {
+      if (int.parse(subcriptionList[index].subscriptionQty.toString()) == 1) {
+        _deleteSubscription(index);
+      }
+    }
+    http.post(
+        Uri.parse(
+            "${Config.server}/mytutor/mobile/php/update_subscription.php"),
+        body: {
+          'subscriptionid': subcriptionList[index].subscriptionId,
+          'operation': s
+        }).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        return http.Response(
+            'Error', 408); // Request Timeout response status code
+      },
+    ).then((response) {
+      var jsondata = jsonDecode(response.body);
+      if (response.statusCode == 200 && jsondata['status'] == 'success') {
+        Fluttertoast.showToast(
+            msg: "Success",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1,
+            fontSize: 16.0);
+        _loadSubscirption();
+      } else {
+        Fluttertoast.showToast(
+            msg: "Failed",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 1,
+            fontSize: 16.0);
+      }
+    });
+  }
+
+  void _SubcriptionPayDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(20.0))),
+          title: const Text(
+            "Pay Now",
+            style: TextStyle(),
+          ),
+          content: const Text("Are you sure?", style: TextStyle()),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                "Yes",
+                style: TextStyle(),
+              ),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (content) => SubscriptionPaymentScreen(
+                            user: widget.user, totalpayable: totalpayable)));
+                _loadSubscirption();
+              },
+            ),
+            TextButton(
+              child: const Text(
+                "No",
+                style: TextStyle(),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }
